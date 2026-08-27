@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>电商平台大促广告位动态竞价引擎看板</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>🛒 电商平台大促广告位分时段动态竞价引擎</h1>
+    <div class="subtitle">底层由 C++ 纯手工高性能线段树驱动 • 标记永久化架构设计 • 已预加载 5,000 条仿真高并发大促真实打底出价</div>
+    
+    <div class="dashboard-layout">
+        <div class="card dashboard-left">
+            <h3>🎨 广告主时段出价归属看板 (24小时 / 1440分钟并发对比)</h3>
+            <div class="legend-container" id="legendBox"></div>
+            <div id="multiTimelines"></div>
+        </div>
+
+        <div class="card dashboard-right snapshot-card" id="snapshotPanel">
+            <h3 style="border-left-color: #e67e22; margin-bottom: 15px;">📍 席位即时状态快照</h3>
+            <div id="snapshotPlaceholder" style="color: #888; font-size: 14px; text-align: center; padding: 20px 0;">
+                💡 鼠标点击左侧任意时间轴色块<br>在此处实时捕获当前赢家详情
+            </div>
+            <div id="snapshotContent" style="display: none;">
+                <div class="snapshot-item">检测网位(Slot): <span class="snapshot-value" id="ssSlot">-</span></div>
+                <div class="snapshot-item">时刻快照(Time): <span class="snapshot-value" id="ssTime">-</span></div>
+                <div class="snapshot-item">当前胜出订单(Bid): <span class="clickable-id" id="ssBid" title="点击可自动填入下方控制面板准备撤销">-</span></div>
+                <div class="snapshot-item">获胜广告主(Adv): <span class="snapshot-value" id="ssAdv">-</span></div>
+                <div class="snapshot-item">最高有效出价(Price): <span class="snapshot-value" id="ssPrice" style="color:#2ecc71;">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="left-panel">
+            <div class="card">
+                <h3>🎮 引擎实时动态交互控制</h3>
+                <div class="form-row">
+                    <span class="form-label">操作类型</span>
+                    <select id="opType" onchange="toggleOpMode()">
+                        <option value="UPDATE">🚀 投递区间出价 (Update)</option>
+                        <option value="REVOKE">🗑️ 撤销区间出价 (Revoke)</option>
+                    </select>
+                </div>
+                
+                <div class="form-row" id="rowSlot">
+                    <span class="form-label">目标网位</span>
+                    <select id="slotId">
+                        <option value="SLOT_BANNER">首页黄金 Banner (SLOT_BANNER)</option>
+                        <option value="SLOT_DETAIL">商品详情页推荐 (SLOT_DETAIL)</option>
+                        <option value="SLOT_SPLASH">App 开屏广告 (SLOT_SPLASH)</option>
+                        <option value="SLOT_FLOAT">右下角悬浮窗 (SLOT_FLOAT)</option>
+                    </select>
+                </div>
+                
+                <div class="form-row" id="rowTime">
+                    <span class="form-label">起始时间</span>
+                    <input type="number" id="startH" placeholder="时(0-23)" min="0" max="23">
+                    <span style="color:#888; font-weight:bold;">:</span>
+                    <input type="number" id="startM" placeholder="分(0-59)" min="0" max="59">
+                    
+                    <span class="form-label" style="text-align:center; width:40px;">至</span>
+                    
+                    <input type="number" id="endH" placeholder="时(0-23)" min="0" max="23">
+                    <span style="color:#888; font-weight:bold;">:</span>
+                    <input type="number" id="endM" placeholder="分(0-59)" min="0" max="59">
+                </div>
+
+                <div class="form-row" id="rowBid">
+                    <span class="form-label">订单编号</span>
+                    <input type="text" id="bidId" placeholder="请输入 6 位纯数字订单号 (如: 100025)" maxlength="6">
+                </div>
+                
+                <div class="form-row" id="rowAdv">
+                    <span class="form-label">广告巨头</span>
+                    <select id="advId">
+                        <option value="Apple">Apple</option>
+                        <option value="Xiaomi">Xiaomi</option>
+                        <option value="Huawei">Huawei</option>
+                        <option value="Dyson">Dyson</option>
+                        <option value="Sony">Sony</option>
+                        <option value="Samsung">Samsung</option>
+                    </select>
+                </div>
+                <div class="form-row" id="rowPrice">
+                    <span class="form-label">出价金额</span>
+                    <input type="number" id="price" placeholder="出价金额 (¥)" min="1" max="100000000" oninput="if(value.length>8)value=value.slice(0,8)">
+                </div>
+                
+                <button id="actionBtn" class="bg-update" onclick="handleEngineAction()">执行操作</button>
+            </div>
+
+            <div class="card">
+                <h3>🔍 竞价详情检索中心</h3>
+                <div class="form-row">
+                    <span class="form-label">检索网位</span>
+                    <select id="searchSlotId">
+                        <option value="SLOT_BANNER">首页黄金 Banner (SLOT_BANNER)</option>
+                        <option value="SLOT_DETAIL">商品详情页推荐 (SLOT_DETAIL)</option>
+                        <option value="SLOT_SPLASH">App 开屏广告 (SLOT_SPLASH)</option>
+                        <option value="SLOT_FLOAT">右下角悬浮窗 (SLOT_FLOAT)</option>
+                    </select>
+                    <span class="form-label">检索类型</span>
+                    <select id="queryType" onchange="toggleQueryMode()">
+                        <option value="point">📍 精准单点查询 (query_point)</option>
+                        <option value="range">📊 连续区间最高价查询 (query_range)</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <span class="form-label">起始时间</span>
+                    <input type="number" id="searchStartH" placeholder="时(0-23)" min="0" max="23">
+                    <span style="color:#888; font-weight:bold;">:</span>
+                    <input type="number" id="searchStartM" placeholder="分(0-59)" min="0" max="59">
+
+                    <div id="searchEndWrapper" style="display:none; align-items:center; gap:8px;">
+                        <span class="form-label" style="text-align:center; width:40px;">至</span>
+                        <input type="number" id="searchEndH" placeholder="时(0-23)" min="0" max="23">
+                        <span style="color:#888; font-weight:bold;">:</span>
+                        <input type="number" id="searchEndM" placeholder="分(0-59)" min="0" max="59">
+                    </div>
+                </div>
+
+                <button onclick="executeSearch()">执行深度检索</button>
+                <div class="detail-box" id="detailContent"></div>
+            </div>
+        </div>
+
+        <div class="right-panel card">
+            <h3>🌲 线段树运行时执行路径溯源</h3>
+            <div class="log-box" id="logBox">
+                <div class="log-line" style="color: #888;">[System] 引擎初始化完毕，5,000条大促仿真数据就绪。等待交互...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

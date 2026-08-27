@@ -1,0 +1,14 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="common/common.vcxproj" Id="749f89bb-16ab-4412-8a71-18af011ac798">
+    <Build Solution="Debug|x86" Project="false" />
+  </Project>
+  <Project Path="include/include.vcxproj" Id="8d71f5f6-5bc1-4169-802d-53ba57cb217e">
+    <Build Solution="Debug|x86" Project="false" />
+  </Project>
+  <Project Path="test_function/test_function.vcxproj" Id="6118cfe0-fc1c-43b7-91e8-bd1774d8e2cc" />
+  <Project Path="test_http/test_http.vcxproj" Id="9b56864b-389b-4514-83c1-305ba0a856b5" />
+</Solution>
